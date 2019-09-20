@@ -1,41 +1,95 @@
 # docker-nexus-npm-registry
-This repository creates a local npm registry provided by nexus running in a local docker image and it should help to reduce internet traffic and built time by downloading redundant npm dependencies.
+
+A Docker image with a local npm and Maven repository for Vaadin projects, populated by the dependencies needed for Vaadin 14. 
 
 It contains an extension of the **Dockerfile** of [Nexus3](https://github.com/sonatype/docker-nexus) for [Docker](https://www.docker.com/)'s.
 
-
-### Base Docker Image
-
-* [nexus:latest](https://hub.docker.com/r/sonatype/nexus)
-
-
-### Installation
+## Installation
 
 1. Install [Docker](https://www.docker.com/).
 
-2. Download the [docker-nexus-npm-registry image](https://hub.docker.com/r/sebak/nexus_npm_registry_vaadin) from public [Docker Hub Registry](https://registry.hub.docker.com/)
+2. Clone this repository 
+    `git clone https://github.com/Artur-/docker-nexus-npm-registry`
 
-    `docker pull sebak/nexus_npm_registry_vaadin`
+3. Build the image   
+    `docker build -t nexus .`
 
-   or, you can build an image from the given Dockerfile: 
-   
-    `docker build -t="npm-registry" .`
+4. Create a folder where the Nexus cache is stored
+    `mkdir data`
 
+5. Start the proxy and populate the cache
+    `docker run -p 8081:8081 --mount type=bind,source="$(pwd)/data",target=/nexus-data nexus`
 
-### Usage
+6. Wait for the build process to complete. It can take a while. It is done when you see
+```
+================
 
-    $ docker run -dit -p 8081:8081 npm-registry
+Caches populated
 
-To link npm to your local registry add a configuration to your local npm
+================
+```
 
-    $ npm config set registry http://localhost:8081/repository/npmjs-org/
+7. Export the container to a file and stop it
+```
+CONTAINER_ID=`docker ps|grep nexus|cut -f1 -d' '`
+docker commit $CONTAINER_ID nexus-populated
+docker save nexus-populated -o nexus-proxy.tgz
+docker kill $CONTAINER_ID
+```
 
-or add [frontend-maven-plugin](https://repo1.maven.org/maven2/com/github/eirslett/frontend-maven-plugin/) to your project pom. You can find an example project with a proper configuration in the vaadin-example folder.
+8. Compress the `data` folder for transfer to an offline host
+```
+tar zcvf data.tgz data/
+```
 
-After setting up the docker image you need to compile a vaadin project on your machine with 
-    
-    $ mvn install -Pproduction
+9. Copy data.tgz && nexus-proxy.tgz to the offline machine
 
-Beware, if you want to add web-components to the project later, which are not part of the default web-component set, you need to have a internet connection available to download and add them to your local npm-regsitry.
+On the offline machine in a selected target folder
 
-To check the content of the npm registry you can go to [localhost:8081](http://localhost:8081/) and login with username "admin" and password "admin".
+1. Uncompress the data folder
+```
+tar zxvf data.tgz
+```
+2. Setup Docker from the stored container
+```
+docker load -i nexus-proxy.tgz
+```
+3. Start the offline Docker
+```
+docker run -dit -p 8081:8081 --mount type=bind,source="$(pwd)/data",target=/nexus-data nexus-populated
+```
+4. After a while, the Nexus proxy will be running at http://localhost:8081
+
+## Using the proxy
+
+### npm
+
+To configure the same machine or another machine in the offline network to use the npm proxy:
+
+```
+npm config set registry http://localhost:8081/repository/npmjs-org/
+```
+
+Use the ip address instead of "localhost" if using from another machine
+
+### Maven
+To configure the same machine or another machine in the offline network to use the Maven proxy add the following to ~/.m2/settings.xml
+
+```
+<settings>
+  <mirrors>
+    <mirror>
+      <id>internal-nexus</id>
+      <name>Internal Nexus</name>
+      <url>http://localhost:8081/repository/maven-central/</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>
+```
+
+Use the ip address instead of "localhost" if using from another machine
+
+## Checking the available dependencies
+
+To check the content of the npm registry you can go to [localhost:8081](http://localhost:8081/) and login with username "admin" and password "admin123".

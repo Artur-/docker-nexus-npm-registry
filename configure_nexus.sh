@@ -18,24 +18,29 @@ source /tmp/change_password_script/change_admin_password.sh
 
 # change password
 CHANGE_ADMIN_PASSWORD_STATUS="" ;
-while [[ ${CHANGE_ADMIN_PASSWORD_STATUS} != *"succeeded!" ]]
+while [[ ${CHANGE_ADMIN_PASSWORD_STATUS} != *"succeeded!" ]] && [[ ${CHANGE_ADMIN_PASSWORD_STATUS} != *"Unauthorized (401)" ]]
 do
     sleep 10s
-
-    echo "webservice not running yet"
+    echo "webservice not running yet: ${CHANGE_ADMIN_PASSWORD_STATUS}"
     CHANGE_ADMIN_PASSWORD_STATUS=`change_admin_password localhost:8081 $(cat /nexus-data/admin.password) admin123 -k`
 done
 echo "webservice is running!"
 
-# go to folder with scripts for npm registry creation and set anomynous login to true
-cd /tmp/nexus-scripting-examples-master/simple-shell-example/
+if [[ ${CHANGE_ADMIN_PASSWORD_STATUS} == *"succeeded!" ]]
+then
+  # this happens on first run. On subsequent runs the password is already set
+  
+  # go to folder with scripts for npm registry creation and set anomynous login to true
+  cd /tmp/nexus-scripting-examples-master/simple-shell-example/
 
-# create npm registry
-sh create.sh npm.json
-sh run.sh npm
+  # create npm registry
+  sh create.sh npm.json
+  sh run.sh npm
 
-# set anomynous to true
-sh setAnonymous.sh true
+  # set anomynous to true
+  sh setAnonymous.sh true
 
-# change password to admin
-CHANGE_ADMIN_PASSWORD_STATUS=`change_admin_password localhost:8081 admin123 admin -k`
+  # Trigger cache populating script
+  sh /tmp/populate_caches.sh
+fi
+

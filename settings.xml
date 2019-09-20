@@ -1,0 +1,10 @@
+<settings>
+  <mirrors>
+    <mirror>
+      <id>internal-nexus</id>
+      <name>Internal Nexus</name>
+      <url>http://localhost:8081/repository/maven-central/</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>

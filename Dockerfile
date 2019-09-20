@@ -15,6 +15,10 @@ RUN yum -y install unzip --disableplugin=subscription-manager \
     && curl -L ${NEXUS_SCRIPTING_EXAMPLES_URL} --output /tmp/master.zip \
     && yum clean all
 
+# Install packages necessary to build and run a Vaadin app
+RUN yum -y install nodejs maven --disableplugin=subscription-manager
+RUN curl -L https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 -o /tmp/jq
+RUN chmod 755 /tmp/jq
 USER nexus
 
 RUN unzip /tmp/change_password_script.zip -d /tmp 
@@ -30,5 +34,8 @@ USER nexus
 
 COPY start_nexus.sh /tmp
 COPY configure_nexus.sh /tmp
+COPY populate_caches.sh /tmp
+COPY --chown=nexus:nexus settings.xml /opt/sonatype/nexus/.m2/
+COPY --chown=nexus:nexus  npmrc /opt/sonatype/nexus/.npmrc
 
 CMD ["sh", "/tmp/start_nexus.sh"]
