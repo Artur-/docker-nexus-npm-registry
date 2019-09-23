@@ -7,6 +7,9 @@ It contains an extension of the **Dockerfile** of [Nexus3](https://github.com/so
 ## Installation
 
 1. Install [Docker](https://www.docker.com/).
+  Direct links for installers:
+  * Mac https://download.docker.com/mac/stable/Docker.dmg
+  * Windows https://download.docker.com/win/stable/Docker%20for%20Windows%20Installer.exe
 
 2. Clone this repository 
     `git clone https://github.com/Artur-/docker-nexus-npm-registry`
